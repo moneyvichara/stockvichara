@@ -67,13 +67,33 @@ Created by Money Vichara - Your trusted companion in financial literacy and smar
 ⚡ Speed Trading Championships
 🎯 Sector-Specific Challenges
 
-
 🎮 Start Your Trading Journey
 🚀 Ready to Trade?
 🎯 Launch Stock Vichara Now
 
 📞 Planning a Competition?
 Contact us for custom tournament setup and advanced features!
+
+## 📄 **License & Copyright**
+
+**© 2024 Money Vichara. All rights reserved.**
+
+### 🎓 **Educational Use**
+- ✅ Free to use for learning purposes
+- ✅ Students and educators welcome
+- ✅ Academic research permitted
+- ✅ Attribution required
+
+### 🏢 **Commercial Use**
+- 📧 Contact for licensing: [mvishwesh@gmail.com]
+- 💼 Business partnerships welcome
+- 🎪 College fest usage encouraged (free)
+
+### 🔗 **Attribution Requirements**
+When using or referencing this project:
+- Credit "Money Vichara" as original creator
+- Link back to: moneyvichara.blogspot.com
+- Mention "Educational Stock Market Simulator"
 
 ⚡ Where Finance Education Meets Gaming Excellence ⚡
 
