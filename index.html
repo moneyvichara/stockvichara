@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIFTY 50 Trading Simulation - Continuous Mode</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+        
+        .team-input {
+            margin-bottom: 15px;
+        }
+        
+        .team-input input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            width: 300px;
+        }
+        
+        .team-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .game-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .positive { color: #27ae60; }
+        .negative { color: #e74c3c; }
+        .neutral { color: #34495e; }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+        
+        .trading-panel {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .panel h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+        
+        .session-control {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .stocks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .stock-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .stock-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        @keyframes pulse-green {
+            0% { background-color: rgba(39, 174, 96, 0.1); }
+            50% { background-color: rgba(39, 174, 96, 0.3); }
+            100% { background-color: transparent; }
+        }
+
+        @keyframes pulse-red {
+            0% { background-color: rgba(231, 76, 60, 0.1); }
+            50% { background-color: rgba(231, 76, 60, 0.3); }
+            100% { background-color: transparent; }
+        }
+
+        .price-update-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        .price-up {
+            background-color: #27ae60;
+        }
+
+        .price-down {
+            background-color: #e74c3c;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .stock-symbol {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #2c3e50;
+        }
+        
+        .stock-sector {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            background: rgba(255,255,255,0.7);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        
+        .stock-price {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stock-change {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        
+        .stock-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            flex: 1;
+        }
+        
+        .portfolio-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .portfolio-item:last-child {
+            border-bottom: none;
+        }
+        
+        .news-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-radius: 8px;
+            border-left: 4px solid #f39c12;
+        }
+        
+        .news-time {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        
+        .news-text {
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .close:hover {
+            color: #e74c3c;
+        }
+        
+        .session-info {
+            background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .timer {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #e74c3c;
+            text-align: center;
+            padding: 20px;
+            background: rgba(231,76,60,0.1);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .timer.setup-phase {
+            color: #f39c12;
+            background: rgba(243,156,18,0.1);
+        }
+
+        .timer.break-phase {
+            color: #3498db;
+            background: rgba(52,152,219,0.1);
+        }
+        
+        .final-results {
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+        
+        .final-results h2 {
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .final-results .final-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .results-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .results-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .transaction-table, .portfolio-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .transaction-table th, .transaction-table td,
+        .portfolio-table th, .portfolio-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .transaction-table th, .portfolio-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        .transaction-table tr:nth-child(even),
+        .portfolio-table tr:nth-child(even) {
+            background: rgba(102,126,234,0.05);
+        }
+
+        .buy-transaction {
+            border-left: 4px solid #27ae60;
+        }
+
+        .sell-transaction {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .weekday-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(102,126,234,0.1);
+            border-radius: 10px;
+        }
+
+        .weekday {
+            text-align: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .weekday.completed {
+            background: #27ae60;
+            color: white;
+        }
+
+        .weekday.active {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .weekday.break {
+            background: #3498db;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        .weekday.setup {
+            background: #f39c12;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        .weekday.pending {
+            background: rgba(255,255,255,0.7);
+            color: #7f8c8d;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .phase-indicator {
+            background: rgba(52,152,219,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: #2c3e50;
+            border-left: 4px solid #3498db;
+        }
+
+        .phase-indicator.setup {
+            background: rgba(243,156,18,0.1);
+            border-left-color: #f39c12;
+        }
+
+        .phase-indicator.trading {
+            background: rgba(39,174,96,0.1);
+            border-left-color: #27ae60;
+        }
+
+        .phase-indicator.break {
+            background: rgba(52,152,219,0.1);
+            border-left-color: #3498db;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .game-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .stocks-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .weekday-indicator {
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+
+            .weekday {
+                flex: 1;
+                min-width: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 Money Vichara - Stock Market Simulation </h1>
+            <p>By Vishweshwar Mensumane - 40 Minutes (7 min setup + 5 days × 5 min trading + 4 × 2 min breaks)</p>
+            
+            <div class="team-input">
+                <label for="teamName" style="font-weight: bold; margin-bottom: 5px; display: block;">Team Name:</label>
+                <input type="text" id="teamName" placeholder="Enter your team name" value="Team Alpha">
+            </div>
+
+            <div class="phase-indicator" id="phaseIndicator">
+                Click "Start Game" to begin 40-minute continuous trading session
+            </div>
+
+            <div class="weekday-indicator">
+                <div class="weekday pending" id="monday">MON</div>
+                <div class="weekday pending" id="tuesday">TUE</div>
+                <div class="weekday pending" id="wednesday">WED</div>
+                <div class="weekday pending" id="thursday">THU</div>
+                <div class="weekday pending" id="friday">FRI</div>
+            </div>
+            
+            <div class="game-stats">
+                <div class="stat-card">
+                    <div class="stat-value neutral" id="portfolioValue">₹10,00,000</div>
+                    <div>Portfolio Value</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value neutral" id="cashBalance">₹10,00,000</div>
+                    <div>Cash Balance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value neutral" id="totalPnL">₹0</div>
+                    <div>Total P&L</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value neutral" id="dayChange">0.00%</div>
+                    <div>Week Change</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value neutral" id="currentSession">Setup Phase</div>
+                    <div>Current Phase</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="trading-panel">
+                <div class="session-control">
+                    <button class="btn btn-primary" id="startGameBtn" onclick="startGame()">Start Game</button>
+                    <button class="btn btn-danger" onclick="resetGame()">Reset Game</button>
+                    <button class="btn btn-primary" onclick="showResults()" style="margin-left: auto;">View Results</button>
+                </div>
+                
+                <div class="session-info" id="sessionInfo">
+                    <strong>Portfolio Setup Phase (7 minutes)</strong><br>
+                    Prepare your initial portfolio strategy. Study the stocks and plan your trades. Trading will begin automatically after setup phase.
+                </div>
+                
+                <div class="timer" id="timer">Game Not Started - 40 minutes total</div>
+                
+                <h3>NIFTY 50 Stocks</h3>
+                <div class="stocks-grid" id="stocksGrid">
+                    <!-- Stocks will be populated here -->
+                </div>
+                
+                <div class="final-results" id="finalResults">
+                    <h2>🎉 TRADING WEEK COMPLETED! 🎉</h2>
+                    <div>Team: <span id="finalTeamName"></span></div>
+                    <div class="final-value" id="finalPortfolioValue">₹10,00,000</div>
+                    <div>Total Return: <span id="finalReturn">0.00%</span></div>
+                    <div style="margin-top: 15px; font-size: 1.1em;">
+                        <strong>Check detailed results below for transaction history and portfolio breakdown!</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="panel">
+                    <h3>📈 Your Portfolio</h3>
+                    <div id="portfolio">
+                        <div class="portfolio-item">
+                            <span>Cash</span>
+                            <span class="positive">₹10,00,000</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <h3>📰 Market News</h3>
+                    <div id="newsFeed">
+                        <div class="news-item">
+                            <div class="news-time">Ready</div>
+                            <div class="news-text">Welcome! Start the game to begin your 40-minute trading journey.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="resultsSection">
+            <h2>📊 Detailed Trading Results</h2>
+            
+            <div class="results-tabs">
+                <button class="tab-button active" onclick="switchTab('transactions')">Transaction History</button>
+                <button class="tab-button" onclick="switchTab('portfolio')">Final Portfolio</button>
+            </div>
+
+            <div id="transactions" class="tab-content active">
+                <h3>Complete Transaction History</h3>
+                <table class="transaction-table" id="transactionTable">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Time</th>
+                            <th>Action</th>
+                            <th>Stock</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Total Amount</th>
+                            <th>Charges</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: #7f8c8d; padding: 20px;">
+                                No transactions yet. Start trading to see your history!
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="portfolio" class="tab-content">
+                <h3>Final Portfolio Breakdown</h3>
+                <table class="portfolio-table" id="portfolioTable">
+                    <thead>
+                        <tr>
+                            <th>Asset</th>
+                            <th>Quantity</th>
+                            <th>Avg. Buy Price</th>
+                            <th>Current Price</th>
+                            <th>Current Value</th>
+                            <th>P&L</th>
+                            <th>P&L %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="portfolioTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #7f8c8d; padding: 20px;">
+                                Portfolio will be shown after trading begins.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trading Modal -->
+    <div id="tradingModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Trade Stock</h2>
+            <form id="tradingForm">
+                <div class="form-group">
+                    <label>Stock:</label>
+                    <input type="text" id="stockSymbol" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Current Price:</label>
+                    <input type="text" id="currentPrice" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Action:</label>
+                    <select id="tradeAction">
+                        <option value="buy">Buy</option>
+                        <option value="sell">Sell</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Quantity:</label>
+                    <input type="number" id="quantity" min="1" max="1000" value="10">
+                </div>
+                <div class="form-group">
+                    <label>Total Amount:</label>
+                    <input type="text" id="totalAmount" readonly>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-success" onclick="executeTrade()">Execute Trade</button>
+                    <button type="button" class="btn btn-danger" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            currentSession: 0, // 0 = setup, 1-5 = trading days, 6-9 = breaks
+            gameActive: false,
+            timeRemaining: 0,
+            cashBalance: 1000000,
+            portfolio: {},
+            totalValue: 1000000,
+            mainTimer: null,
+            stocks: {},
+            newsEventIndex: 0,
+            transactions: [],
+            portfolioHistory: {},
+            currentTradingStock: null,
+            priceUpdateCounter: 0,
+            currentPhase: 'setup', // 'setup', 'trading', 'break', 'completed'
+            tradingEnabled: false
+        };
+
+        const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        const weekdayIds = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+
+        // NIFTY 50 Stocks Data
+        const nifty50Stocks = [
+            {symbol: 'RELIANCE', name: 'Reliance Industries', sector: 'Energy', price: 2450.75},
+            {symbol: 'TCS', name: 'Tata Consultancy Services', sector: 'IT', price: 3250.50},
+            {symbol: 'HDFCBANK', name: 'HDFC Bank', sector: 'Banking', price: 1580.25},
+            {symbol: 'ICICIBANK', name: 'ICICI Bank', sector: 'Banking', price: 825.30},
+            {symbol: 'HINDUNILVR', name: 'Hindustan Unilever', sector: 'FMCG', price: 2380.90},
+            {symbol: 'INFY', name: 'Infosys', sector: 'IT', price: 1420.60},
+            {symbol: 'ITC', name: 'ITC Limited', sector: 'FMCG', price: 285.75},
+            {symbol: 'SBIN', name: 'State Bank of India', sector: 'Banking', price: 542.80},
+            {symbol: 'BHARTIARTL', name: 'Bharti Airtel', sector: 'Telecom', price: 875.45},
+            {symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank', sector: 'Banking', price: 1720.15},
+            {symbol: 'LT', name: 'Larsen & Toubro', sector: 'Infrastructure', price: 2180.30},
+            {symbol: 'HCLTECH', name: 'HCL Technologies', sector: 'IT', price: 1150.25},
+            {symbol: 'ASIANPAINT', name: 'Asian Paints', sector: 'Consumer', price: 3050.80},
+            {symbol: 'MARUTI', name: 'Maruti Suzuki', sector: 'Auto', price: 9250.45},
+            {symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical', sector: 'Pharma', price: 1080.60},
+            {symbol: 'TITAN', name: 'Titan Company', sector: 'Consumer', price: 2850.75},
+            {symbol: 'NTPC', name: 'NTPC Limited', sector: 'Power', price: 195.30},
+            {symbol: 'AXISBANK', name: 'Axis Bank', sector: 'Banking', price: 1050.25},
+            {symbol: 'POWERGRID', name: 'Power Grid Corporation', sector: 'Power', price: 225.80},
+            {symbol: 'ULTRACEMCO', name: 'UltraTech Cement', sector: 'Cement', price: 7850.90},
+            {symbol: 'WIPRO', name: 'Wipro Limited', sector: 'IT', price: 395.60},
+            {symbol: 'NESTLEIND', name: 'Nestle India', sector: 'FMCG', price: 19850.25},
+            {symbol: 'JSWSTEEL', name: 'JSW Steel', sector: 'Steel', price: 625.40},
+            {symbol: 'BAJFINANCE', name: 'Bajaj Finance', sector: 'NBFC', price: 6750.80},
+            {symbol: 'TATAMOTORS', name: 'Tata Motors', sector: 'Auto', price: 485.30}
+        ];
+
+        // Game Timeline Configuration (in minutes)
+        const gameTimeline = {
+            setup: 7,           // 7 minutes setup
+            tradingDay: 5,      // 5 minutes per trading day
+            breakTime: 2,       // 2 minutes break between days
+            totalDays: 5        // Monday to Friday
+        };
+
+        // Session Configurations
+        const sessionConfig = {
+            1: {
+                name: "Market Opening Week",
+                day: "Monday",
+                description: "Markets open for the week with mixed global cues. Focus on initial portfolio construction and sector allocation.",
+                newsEvents: [
+                    {time: 1, text: "Monday: Markets open flat amid mixed global sentiment and FII flows"},
+                    {time: 2, text: "Banking stocks under pressure due to RBI policy concerns this Monday"},
+                    {time: 3, text: "IT sector shows early strength on rupee depreciation trends"},
+                    {time: 4, text: "Energy stocks gain momentum on crude oil price recovery"},
+                    {time: 5, text: "FMCG sector mixed on rural demand concerns to start the week"}
+                ]
+            },
+            2: {
+                name: "Mid-Week Volatility",
+                day: "Tuesday", 
+                description: "Tuesday brings increased volatility as sectoral trends emerge. Focus on momentum and technical analysis.",
+                newsEvents: [
+                    {time: 1, text: "Tuesday: Auto sector surges on positive Q3 sales data"},
+                    {time: 2, text: "Pharma stocks rally on export order announcements"},
+                    {time: 3, text: "Metal stocks decline on Chinese demand concerns"},
+                    {time: 4, text: "Telecom sector gains on tariff hike expectations"},
+                    {time: 5, text: "Infrastructure stocks rise on budget allocation hopes"}
+                ]
+            },
+            3: {
+                name: "Mid-Week Consolidation",
+                day: "Wednesday",
+                description: "Wednesday market enters consolidation phase. Focus on stock-specific opportunities and risk management.",
+                newsEvents: [
+                    {time: 1, text: "Wednesday: Large cap stocks show resilience amid market uncertainty"},
+                    {time: 2, text: "Cement sector gains on infrastructure project announcements"},
+                    {time: 3, text: "Consumer goods stocks mixed on margin pressure concerns"},
+                    {time: 4, text: "Power sector rallies on renewable energy policy updates"},
+                    {time: 5, text: "NBFC stocks under scrutiny on asset quality concerns"}
+                ]
+            },
+            4: {
+                name: "Thursday Volatility",
+                day: "Thursday",
+                description: "Thursday brings high volatility phase with sector rotation. Focus on position sizing and quick decision making.",
+                newsEvents: [
+                    {time: 1, text: "Thursday: Major banking stock reports strong quarterly results"},
+                    {time: 2, text: "IT sector faces headwinds on client spending cuts"},
+                    {time: 3, text: "Steel stocks surge on domestic demand revival signs"},
+                    {time: 4, text: "FMCG giants announce price hikes across categories"},
+                    {time: 5, text: "Oil & Gas sector volatile on global crude movements"}
+                ]
+            },
+            5: {
+                name: "Week End Close",
+                day: "Friday",
+                description: "Friday - Final trading day of the week before market close. Focus on portfolio optimization and final positioning.",
+                newsEvents: [
+                    {time: 1, text: "Friday: Institutional buying picks up ahead of weekend"},
+                    {time: 2, text: "Market consolidates as traders book weekly profits"},
+                    {time: 3, text: "FII flows turn positive supporting market sentiment"},
+                    {time: 4, text: "Weekly expiry drives volatility in index stocks"},
+                    {time: 5, text: "Markets end week on positive note with broad-based gains"}
+                ]
+            }
+        };
+
+        // Initialize game on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeGame();
+        });
+
+        function initializeGame() {
+            // Initialize stocks with base prices
+            nifty50Stocks.forEach(stock => {
+                gameState.stocks[stock.symbol] = {
+                    ...stock,
+                    currentPrice: stock.price,
+                    change: 0,
+                    changePercent: 0
+                };
+            });
+            
+            renderStocks();
+            updateUI();
+            updateWeekdayIndicators();
+        }
+
+        function startGame() {
+            if (gameState.gameActive) return;
+            
+            gameState.gameActive = true;
+            gameState.currentPhase = 'setup';
+            gameState.timeRemaining = gameTimeline.setup * 60; // 7 minutes in seconds
+            gameState.tradingEnabled = true; // Enable trading during setup
+            
+            document.getElementById('startGameBtn').disabled = true;
+            document.getElementById('startGameBtn').textContent = 'Game Running...';
+            
+            updatePhaseIndicator();
+            updateWeekdayIndicators();
+            addNewsEvent("Setup Phase Started: Plan your portfolio strategy for the next 7 minutes!");
+            
+            // Start main game timer
+            gameState.mainTimer = setInterval(gameLoop, 1000);
+            
+            // Start price updates immediately
+            simulateMarketMovement();
+        }
+
+        function gameLoop() {
+            gameState.timeRemaining--;
+            gameState.priceUpdateCounter++;
+            
+            updateTimer();
+            
+            // Update prices every 10 seconds
+            if (gameState.priceUpdateCounter % 10 === 0) {
+                simulateMarketMovement();
+            }
+            
+            // Handle phase transitions
+            if (gameState.timeRemaining <= 0) {
+                transitionToNextPhase();
+            }
+            
+            // Handle news events during trading phases
+            if (gameState.currentPhase === 'trading') {
+                handleNewsEvents();
+            }
+        }
+
+        function transitionToNextPhase() {
+            switch (gameState.currentPhase) {
+                case 'setup':
+                    // Transition to first trading day
+                    startTradingDay(1);
+                    break;
+                    
+                case 'trading':
+                    // End current trading day
+                    endTradingDay();
+                    
+                    if (gameState.currentSession < 5) {
+                        // Start break before next day
+                        startBreak();
+                    } else {
+                        // Game completed
+                        completeGame();
+                    }
+                    break;
+                    
+                case 'break':
+                    // Start next trading day
+                    startTradingDay(gameState.currentSession + 1);
+                    break;
+            }
+        }
+
+        function startTradingDay(dayNumber) {
+            gameState.currentSession = dayNumber;
+            gameState.currentPhase = 'trading';
+            gameState.timeRemaining = gameTimeline.tradingDay * 60; // 5 minutes
+            gameState.newsEventIndex = 0;
+            gameState.tradingEnabled = true;
+            
+            updateSessionInfo();
+            updatePhaseIndicator();
+            updateWeekdayIndicators();
+            
+            addNewsEvent(`${sessionConfig[dayNumber].day} Trading Started: ${sessionConfig[dayNumber].description}`);
+            
+            // Major market movement at day start
+            simulateMarketMovement(true);
+        }
+
+        function endTradingDay() {
+            gameState.tradingEnabled = false; // Disable trading during breaks
+            
+            // Save portfolio history
+            gameState.portfolioHistory[gameState.currentSession] = {
+                cashBalance: gameState.cashBalance,
+                portfolio: {...gameState.portfolio},
+                totalValue: gameState.totalValue
+            };
+            
+            addNewsEvent(`${sessionConfig[gameState.currentSession].day} Trading Day Completed!`);
+        }
+
+        function startBreak() {
+            gameState.currentPhase = 'break';
+            gameState.timeRemaining = gameTimeline.breakTime * 60; // 2 minutes
+            gameState.tradingEnabled = false; // Disable trading during breaks
+            
+            updatePhaseIndicator();
+            updateWeekdayIndicators();
+            
+            addNewsEvent(`Break Time: Markets closed. Prepare for ${weekdays[gameState.currentSession]} trading. Break ends in 2 minutes.`);
+        }
+
+        function completeGame() {
+            gameState.gameActive = false;
+            gameState.currentPhase = 'completed';
+            gameState.tradingEnabled = false; // Disable trading when game completes
+            clearInterval(gameState.mainTimer);
+            
+            updatePhaseIndicator();
+            updateWeekdayIndicators();
+            showFinalResults();
+            
+            addNewsEvent("🎉 Trading Week Completed! Markets closed. Check your final results.");
+        }
+
+        function handleNewsEvents() {
+            const elapsedMinutes = Math.floor((gameTimeline.tradingDay * 60 - gameState.timeRemaining) / 60) + 1;
+            const newsEvents = sessionConfig[gameState.currentSession].newsEvents;
+            
+            if (gameState.newsEventIndex < newsEvents.length && 
+                newsEvents[gameState.newsEventIndex].time === elapsedMinutes) {
+                addNewsEvent(newsEvents[gameState.newsEventIndex].text);
+                gameState.newsEventIndex++;
+                // Major market movement on news
+                simulateMarketMovement(true);
+            }
+        }
+
+        function updatePhaseIndicator() {
+            const indicator = document.getElementById('phaseIndicator');
+            const currentSession = document.getElementById('currentSession');
+            
+            switch (gameState.currentPhase) {
+                case 'setup':
+                    indicator.className = 'phase-indicator setup';
+                    indicator.textContent = '🎯 Portfolio Setup Phase - Plan your strategy!';
+                    currentSession.textContent = 'Setup Phase';
+                    break;
+                    
+                case 'trading':
+                    indicator.className = 'phase-indicator trading';
+                    indicator.textContent = `📈 ${sessionConfig[gameState.currentSession].day} Trading Active - Make your moves!`;
+                    currentSession.textContent = sessionConfig[gameState.currentSession].day;
+                    break;
+                    
+                case 'break':
+                    indicator.className = 'phase-indicator break';
+                    indicator.textContent = `⏸️ Market Break - Trading suspended. Prepare for ${weekdays[gameState.currentSession]}`;
+                    currentSession.textContent = 'Market Break';
+                    break;
+                    
+                case 'completed':
+                    indicator.className = 'phase-indicator';
+                    indicator.textContent = '🏁 Trading Week Completed - View Results!';
+                    currentSession.textContent = 'Completed';
+                    break;
+            }
+        }
+
+        function updateWeekdayIndicators() {
+            weekdayIds.forEach((dayId, index) => {
+                const element = document.getElementById(dayId);
+                element.className = 'weekday';
+                
+                if (gameState.currentPhase === 'setup') {
+                    if (index === 0) {
+                        element.classList.add('setup');
+                    } else {
+                        element.classList.add('pending');
+                    }
+                } else if (gameState.currentPhase === 'trading') {
+                    if (index + 1 < gameState.currentSession) {
+                        element.classList.add('completed');
+                    } else if (index + 1 === gameState.currentSession) {
+                        element.classList.add('active');
+                    } else {
+                        element.classList.add('pending');
+                    }
+                } else if (gameState.currentPhase === 'break') {
+                    if (index + 1 <= gameState.currentSession) {
+                        element.classList.add('completed');
+                    } else if (index + 1 === gameState.currentSession + 1) {
+                        element.classList.add('break');
+                    } else {
+                        element.classList.add('pending');
+                    }
+                } else if (gameState.currentPhase === 'completed') {
+                    element.classList.add('completed');
+                }
+            });
+        }
+
+        function updateTimer() {
+            const minutes = Math.floor(gameState.timeRemaining / 60);
+            const seconds = gameState.timeRemaining % 60;
+            const timerElement = document.getElementById('timer');
+            
+            let timerText = '';
+            let timerClass = 'timer';
+            
+            switch (gameState.currentPhase) {
+                case 'setup':
+                    timerText = `Setup Phase: ${minutes}:${seconds.toString().padStart(2, '0')} remaining`;
+                    timerClass += ' setup-phase';
+                    break;
+                    
+                case 'trading':
+                    timerText = `${sessionConfig[gameState.currentSession].day}: ${minutes}:${seconds.toString().padStart(2, '0')} remaining`;
+                    break;
+                    
+                case 'break':
+                    timerText = `Break: ${minutes}:${seconds.toString().padStart(2, '0')} remaining`;
+                    timerClass += ' break-phase';
+                    break;
+                    
+                case 'completed':
+                    timerText = 'Trading Week Completed! 🎉';
+                    break;
+            }
+            
+            timerElement.textContent = timerText;
+            timerElement.className = timerClass;
+        }
+
+        function updateSessionInfo() {
+            if (gameState.currentPhase === 'trading') {
+                const session = sessionConfig[gameState.currentSession];
+                document.getElementById('sessionInfo').innerHTML = `
+                    <strong>${session.day}: ${session.name}</strong><br>
+                    ${session.description}
+                    <br><strong>Duration: ${gameTimeline.tradingDay} minutes with ${session.newsEvents.length} market news updates</strong>
+                `;
+            }
+        }
+
+        function renderStocks() {
+            const stocksGrid = document.getElementById('stocksGrid');
+            stocksGrid.innerHTML = '';
+            
+            Object.values(gameState.stocks).forEach(stock => {
+                const stockCard = createStockCard(stock);
+                stocksGrid.appendChild(stockCard);
+            });
+        }
+
+        function createStockCard(stock) {
+            const card = document.createElement('div');
+            card.className = 'stock-card';
+            
+            const changeClass = stock.change >= 0 ? 'positive' : 'negative';
+            const changeSymbol = stock.change >= 0 ? '+' : '';
+            
+            // Add visual indicators for significant changes
+            let priceAnimation = '';
+            if (Math.abs(stock.changePercent) > 1) {
+                priceAnimation = stock.change >= 0 ? 'style="animation: pulse-green 1s;"' : 'style="animation: pulse-red 1s;"';
+            }
+            
+            card.innerHTML = `
+                <div class="stock-header">
+                    <div class="stock-symbol">${stock.symbol}</div>
+                    <div class="stock-sector">${stock.sector}</div>
+                </div>
+                <div class="stock-price ${changeClass}" ${priceAnimation}>₹${stock.currentPrice.toFixed(2)}</div>
+                <div class="stock-change ${changeClass}">
+                    ${changeSymbol}₹${stock.change.toFixed(2)} (${changeSymbol}${stock.changePercent.toFixed(2)}%)
+                </div>
+                <div class="stock-actions">
+                    <button class="btn btn-success btn-small" onclick="openTradeModal('${stock.symbol}', 'buy')" 
+                            ${!gameState.tradingEnabled ? 'disabled' : ''}>
+                        Buy
+                    </button>
+                    <button class="btn btn-danger btn-small" onclick="openTradeModal('${stock.symbol}', 'sell')"
+                            ${!gameState.tradingEnabled || !gameState.portfolio[stock.symbol] ? 'disabled' : ''}>
+                        Sell
+                    </button>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function simulateMarketMovement(isNewsEvent = false) {
+            Object.keys(gameState.stocks).forEach(symbol => {
+                const stock = gameState.stocks[symbol];
+                
+                // Different volatility based on sector and session
+                let maxChange = 0.003; // Base 0.3% change every 10 seconds
+                
+                if (isNewsEvent) {
+                    maxChange = 0.015; // 1.5% change on news events
+                }
+                
+                // Sector-based volatility
+                const sectorVolatility = {
+                    'IT': 1.2,
+                    'Banking': 1.1,
+                    'Auto': 1.3,
+                    'Pharma': 1.1,
+                    'Energy': 1.4,
+                    'FMCG': 0.8,
+                    'Telecom': 1.2,
+                    'Infrastructure': 1.3,
+                    'Power': 1.5,
+                    'Cement': 1.4,
+                    'Steel': 1.6,
+                    'NBFC': 1.3,
+                    'Consumer': 0.9
+                };
+                
+                maxChange *= (sectorVolatility[stock.sector] || 1.0);
+                
+                // Add session-based trends
+                let trendBias = 0;
+                if (gameState.currentPhase === 'trading') {
+                    switch(gameState.currentSession) {
+                        case 1: // Monday - Mixed opening
+                            trendBias = Math.random() > 0.5 ? 0.001 : -0.001;
+                            break;
+                        case 2: // Tuesday - Volatile
+                            maxChange *= 1.2;
+                            break;
+                        case 3: // Wednesday - Consolidation
+                            maxChange *= 0.8;
+                            break;
+                        case 4: // Thursday - High volatility
+                            maxChange *= 1.4;
+                            break;
+                        case 5: // Friday - End of week
+                            trendBias = Math.random() > 0.6 ? 0.002 : -0.001; // Slight positive bias
+                            break;
+                    }
+                }
+                
+                // Generate price change with trend bias
+                const changePercent = (Math.random() - 0.5) * 2 * maxChange + trendBias;
+                
+                // Apply change to current price (not base price)
+                const newPrice = stock.currentPrice * (1 + changePercent);
+                
+                // Prevent extreme movements (max 20% from base price)
+                const maxPriceDeviation = stock.price * 0.2;
+                stock.currentPrice = Math.max(
+                    stock.price - maxPriceDeviation,
+                    Math.min(stock.price + maxPriceDeviation, newPrice)
+                );
+                
+                // Calculate cumulative change from base price
+                stock.change = stock.currentPrice - stock.price;
+                stock.changePercent = (stock.currentPrice - stock.price) / stock.price * 100;
+            });
+            
+            calculatePortfolioValue();
+            updateUI();
+            renderStocks();
+        }
+
+        function calculatePortfolioValue() {
+            let stockValue = 0;
+            
+            Object.keys(gameState.portfolio).forEach(symbol => {
+                const holding = gameState.portfolio[symbol];
+                const currentPrice = gameState.stocks[symbol] ? gameState.stocks[symbol].currentPrice : 0;
+                
+                // Safety checks
+                if (!holding || !holding.quantity || holding.quantity <= 0) {
+                    delete gameState.portfolio[symbol];
+                    return;
+                }
+                
+                if (!currentPrice || currentPrice <= 0 || !isFinite(currentPrice)) {
+                    // Use base price as fallback
+                    const basePrice = gameState.stocks[symbol] ? gameState.stocks[symbol].price : 1000;
+                    stockValue += holding.quantity * basePrice;
+                } else {
+                    stockValue += holding.quantity * currentPrice;
+                }
+            });
+            
+            // Safety checks for cash balance
+            if (!gameState.cashBalance || gameState.cashBalance < 0 || !isFinite(gameState.cashBalance)) {
+                gameState.cashBalance = 0;
+            }
+            
+            gameState.totalValue = gameState.cashBalance + stockValue;
+            
+            // Ensure total value is always positive and finite
+            if (!gameState.totalValue || gameState.totalValue < 0 || !isFinite(gameState.totalValue)) {
+                gameState.totalValue = gameState.cashBalance || 1000000;
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('portfolioValue').textContent = `₹${gameState.totalValue.toLocaleString()}`;
+            document.getElementById('cashBalance').textContent = `₹${gameState.cashBalance.toLocaleString()}`;
+            
+            const pnl = gameState.totalValue - 1000000;
+            const pnlPercent = (pnl / 1000000) * 100;
+            
+            document.getElementById('totalPnL').textContent = `₹${pnl.toLocaleString()}`;
+            document.getElementById('totalPnL').className = `stat-value ${pnl >= 0 ? 'positive' : 'negative'}`;
+            
+            document.getElementById('dayChange').textContent = `${pnlPercent.toFixed(2)}%`;
+            document.getElementById('dayChange').className = `stat-value ${pnlPercent >= 0 ? 'positive' : 'negative'}`;
+            
+            updatePortfolioDisplay();
+        }
+
+        function updatePortfolioDisplay() {
+            const portfolioDiv = document.getElementById('portfolio');
+            portfolioDiv.innerHTML = `
+                <div class="portfolio-item">
+                    <span>Cash</span>
+                    <span class="positive">₹${gameState.cashBalance.toLocaleString()}</span>
+                </div>
+            `;
+            
+            Object.keys(gameState.portfolio).forEach(symbol => {
+                const holding = gameState.portfolio[symbol];
+                const currentPrice = gameState.stocks[symbol].currentPrice;
+                const currentValue = holding.quantity * currentPrice;
+                const pnl = currentValue - (holding.quantity * holding.averagePrice);
+                const pnlClass = pnl >= 0 ? 'positive' : 'negative';
+                
+                portfolioDiv.innerHTML += `
+                    <div class="portfolio-item">
+                        <div>
+                            <strong>${symbol}</strong><br>
+                            <small>${holding.quantity} shares @ ₹${holding.averagePrice.toFixed(2)}</small>
+                        </div>
+                        <div>
+                            <span class="${pnlClass}">₹${currentValue.toLocaleString()}</span><br>
+                            <small class="${pnlClass}">₹${pnl.toFixed(0)} (${(pnl/currentValue*100).toFixed(1)}%)</small>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function addNewsEvent(text) {
+            const newsFeed = document.getElementById('newsFeed');
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            
+            const newsItem = document.createElement('div');
+            newsItem.className = 'news-item';
+            newsItem.innerHTML = `
+                <div class="news-time">${timeString}</div>
+                <div class="news-text">${text}</div>
+            `;
+            
+            newsFeed.insertBefore(newsItem, newsFeed.firstChild);
+            
+            // Keep only last 8 news items
+            while (newsFeed.children.length > 8) {
+                newsFeed.removeChild(newsFeed.lastChild);
+            }
+        }
+
+        function openTradeModal(symbol, action) {
+            gameState.currentTradingStock = symbol;
+            const stock = gameState.stocks[symbol];
+            
+            document.getElementById('stockSymbol').value = symbol;
+            document.getElementById('currentPrice').value = `₹${stock.currentPrice.toFixed(2)}`;
+            document.getElementById('tradeAction').value = action;
+            document.getElementById('quantity').value = 10;
+            document.getElementById('modalTitle').textContent = `${action.toUpperCase()} ${symbol}`;
+            
+            updateTotalAmount();
+            document.getElementById('tradingModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('tradingModal').style.display = 'none';
+            gameState.currentTradingStock = null;
+        }
+
+        function updateTotalAmount() {
+            const quantity = parseInt(document.getElementById('quantity').value) || 0;
+            const price = gameState.stocks[gameState.currentTradingStock].currentPrice;
+            const total = quantity * price;
+            document.getElementById('totalAmount').value = `₹${total.toLocaleString()}`;
+        }
+
+        // Add event listener for quantity changes
+        document.getElementById('quantity').addEventListener('input', updateTotalAmount);
+
+        function executeTrade() {
+            const symbol = gameState.currentTradingStock;
+            const action = document.getElementById('tradeAction').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const price = gameState.stocks[symbol].currentPrice;
+            
+            // Input validation
+            if (!quantity || quantity <= 0 || quantity > 10000) {
+                alert('Please enter a valid quantity (1-10,000 shares)');
+                return;
+            }
+            
+            if (!price || price <= 0 || !isFinite(price)) {
+                alert('Invalid stock price. Please try again.');
+                return;
+            }
+            
+            const totalAmount = quantity * price;
+            const charges = Math.max(totalAmount * 0.001, 5); // Minimum ₹5 charges
+            const netAmount = action === 'buy' ? totalAmount + charges : totalAmount - charges;
+            
+            // Minimum trade amount validation
+            if (totalAmount < 100) {
+                alert('Minimum trade amount is ₹100');
+                return;
+            }
+            
+            if (action === 'buy') {
+                if (gameState.cashBalance < netAmount) {
+                    alert('Insufficient cash balance!');
+                    return;
+                }
+                
+                // Check maximum position size (20% of portfolio)
+                const maxPositionValue = gameState.totalValue * 0.2;
+                const currentHolding = gameState.portfolio[symbol] ? 
+                    gameState.portfolio[symbol].quantity * price : 0;
+                
+                if (currentHolding + totalAmount > maxPositionValue) {
+                    alert(`Maximum position size exceeded! You can hold max ₹${maxPositionValue.toLocaleString()} in ${symbol}`);
+                    return;
+                }
+                
+                gameState.cashBalance -= netAmount;
+                
+                if (!gameState.portfolio[symbol]) {
+                    gameState.portfolio[symbol] = {quantity: 0, totalCost: 0, averagePrice: 0};
+                }
+                
+                gameState.portfolio[symbol].totalCost += totalAmount;
+                gameState.portfolio[symbol].quantity += quantity;
+                
+                // Safe average price calculation
+                if (gameState.portfolio[symbol].quantity > 0) {
+                    gameState.portfolio[symbol].averagePrice = gameState.portfolio[symbol].totalCost / gameState.portfolio[symbol].quantity;
+                }
+                
+            } else { // sell
+                if (!gameState.portfolio[symbol] || gameState.portfolio[symbol].quantity < quantity) {
+                    alert('Insufficient shares to sell!');
+                    return;
+                }
+                
+                gameState.cashBalance += netAmount;
+                gameState.portfolio[symbol].quantity -= quantity;
+                
+                // Proportional cost reduction
+                const costReduction = (gameState.portfolio[symbol].averagePrice * quantity);
+                gameState.portfolio[symbol].totalCost = Math.max(0, gameState.portfolio[symbol].totalCost - costReduction);
+                
+                if (gameState.portfolio[symbol].quantity === 0) {
+                    delete gameState.portfolio[symbol];
+                }
+            }
+            
+            // Validate cash balance doesn't go negative
+            if (gameState.cashBalance < 0) {
+                gameState.cashBalance = 0;
+            }
+            
+            // Record transaction
+            const phaseInfo = gameState.currentPhase === 'setup' ? 'Setup' : 
+                             gameState.currentPhase === 'trading' ? weekdays[gameState.currentSession - 1] :
+                             gameState.currentPhase === 'break' ? 'Break' : 'Completed';
+            
+            gameState.transactions.push({
+                day: phaseInfo,
+                time: new Date().toLocaleTimeString(),
+                action: action.toUpperCase(),
+                symbol: symbol,
+                quantity: quantity,
+                price: Math.round(price * 100) / 100, // Round to 2 decimals
+                totalAmount: Math.round(totalAmount * 100) / 100,
+                charges: Math.round(charges * 100) / 100
+            });
+            
+            calculatePortfolioValue();
+            updateUI();
+            renderStocks();
+            closeModal();
+        }
+
+        function showFinalResults() {
+            const teamName = document.getElementById('teamName').value || 'Team Alpha';
+            const finalReturn = ((gameState.totalValue - 1000000) / 1000000) * 100;
+            
+            document.getElementById('finalTeamName').textContent = teamName;
+            document.getElementById('finalPortfolioValue').textContent = `₹${gameState.totalValue.toLocaleString()}`;
+            document.getElementById('finalReturn').textContent = `${finalReturn.toFixed(2)}%`;
+            document.getElementById('finalReturn').className = finalReturn >= 0 ? 'positive' : 'negative';
+            
+            document.getElementById('finalResults').style.display = 'block';
+        }
+
+        function showResults() {
+            document.getElementById('resultsSection').style.display = 'block';
+            updateTransactionTable();
+            updatePortfolioTable();
+        }
+
+        function updateTransactionTable() {
+            const tbody = document.getElementById('transactionTableBody');
+            
+            if (gameState.transactions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: #7f8c8d; padding: 20px;">
+                            No transactions yet. Start trading to see your history!
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            gameState.transactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                row.className = transaction.action === 'BUY' ? 'buy-transaction' : 'sell-transaction';
+                row.innerHTML = `
+                    <td>${transaction.day}</td>
+                    <td>${transaction.time}</td>
+                    <td><strong>${transaction.action}</strong></td>
+                    <td>${transaction.symbol}</td>
+                    <td>${transaction.quantity}</td>
+                    <td>₹${transaction.price.toFixed(2)}</td>
+                    <td>₹${transaction.totalAmount.toLocaleString()}</td>
+                    <td>₹${transaction.charges.toFixed(2)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updatePortfolioTable() {
+            const tbody = document.getElementById('portfolioTableBody');
+            
+            if (Object.keys(gameState.portfolio).length === 0 && gameState.cashBalance === 1000000) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #7f8c8d; padding: 20px;">
+                            Portfolio will be shown after trading begins.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            
+            // Add cash row
+            const cashRow = document.createElement('tr');
+            cashRow.innerHTML = `
+                <td><strong>Cash</strong></td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>₹${gameState.cashBalance.toLocaleString()}</td>
+                <td class="positive">₹0</td>
+                <td class="positive">0.00%</td>
+            `;
+            tbody.appendChild(cashRow);
+            
+            // Add stock holdings
+            Object.keys(gameState.portfolio).forEach(symbol => {
+                const holding = gameState.portfolio[symbol];
+                const currentPrice = gameState.stocks[symbol].currentPrice;
+                const currentValue = holding.quantity * currentPrice;
+                const pnl = currentValue - holding.totalCost;
+                const pnlPercent = (pnl / holding.totalCost) * 100;
+                const pnlClass = pnl >= 0 ? 'positive' : 'negative';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${symbol}</strong></td>
+                    <td>${holding.quantity}</td>
+                    <td>₹${holding.averagePrice.toFixed(2)}</td>
+                    <td>₹${currentPrice.toFixed(2)}</td>
+                    <td>₹${currentValue.toLocaleString()}</td>
+                    <td class="${pnlClass}">₹${pnl.toFixed(0)}</td>
+                    <td class="${pnlClass}">${pnlPercent.toFixed(2)}%</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function switchTab(tabName) {
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected tab
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function resetGame() {
+            if (confirm('Are you sure you want to reset the game? All progress will be lost.')) {
+                // Clear any running timer
+                if (gameState.mainTimer) {
+                    clearInterval(gameState.mainTimer);
+                }
+                
+                // Reset game state
+                gameState = {
+                    currentSession: 0,
+                    gameActive: false,
+                    timeRemaining: 0,
+                    cashBalance: 1000000,
+                    portfolio: {},
+                    totalValue: 1000000,
+                    mainTimer: null,
+                    stocks: {},
+                    newsEventIndex: 0,
+                    transactions: [],
+                    portfolioHistory: {},
+                    currentTradingStock: null,
+                    priceUpdateCounter: 0,
+                    currentPhase: 'setup',
+                    tradingEnabled: false
+                };
+                
+                // Reset UI elements
+                document.getElementById('startGameBtn').disabled = false;
+                document.getElementById('startGameBtn').textContent = 'Start Game';
+                document.getElementById('finalResults').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'none';
+                document.getElementById('timer').textContent = 'Game Not Started - 40 minutes total';
+                document.getElementById('timer').className = 'timer';
+                
+                // Reset phase indicator
+                document.getElementById('phaseIndicator').className = 'phase-indicator';
+                document.getElementById('phaseIndicator').textContent = 'Click "Start Game" to begin 40-minute continuous trading session';
+                
+                // Clear news feed
+                document.getElementById('newsFeed').innerHTML = `
+                    <div class="news-item">
+                        <div class="news-time">Ready</div>
+                        <div class="news-text">Welcome! Start the game to begin your 40-minute trading journey.</div>
+                    </div>
+                `;
+                
+                // Reset session info
+                document.getElementById('sessionInfo').innerHTML = `
+                    <strong>Portfolio Setup Phase (7 minutes)</strong><br>
+                    Prepare your initial portfolio strategy. Study the stocks and plan your trades. Trading will begin automatically after setup phase.
+                `;
+                
+                // Reinitialize
+                initializeGame();
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('tradingModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Prevent accidental page refresh during game
+        window.addEventListener('beforeunload', function (e) {
+            if (gameState.gameActive) {
+                e.preventDefault();
+                e.returnValue = 'Your trading session is active. Are you sure you want to leave?';
+            }
+        });
+    </script>
+</body>
+</html>
